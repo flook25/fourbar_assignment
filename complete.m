@@ -8,13 +8,13 @@ theta_Yellow_Input_Rad = deg2rad(theta_Yellow_Input_Deg);
 % สร้าง Figure รวม
 figure('Color','w','Position',[50 50 1200 600]); 
 
-% --- PLOT CASE 1: OPEN CONFIGURATION ---
+% --- PLOT CASE 1: OPEN CONFIGURATION (ตรงตามรูปวาดของคุณ) ---
 subplot(1,2,1); hold on; axis equal; grid on; box on;
-title('Complete Mechanism: Case 1 (Open Config)');
+title('Complete Mechanism: Case 1 (Open Config - Matches Sketch)');
 xlabel('X (mm)'); ylabel('Y (mm)');
 plot_full_mechanism(theta_Yellow_Input_Rad, 1); % เรียกฟังก์ชันวาด Case 1
 
-% --- PLOT CASE 2: CROSSED CONFIGURATION ---
+% --- PLOT CASE 2: CROSSED CONFIGURATION (เผื่อไว้ดูเปรียบเทียบ) ---
 subplot(1,2,2); hold on; axis equal; grid on; box on;
 title('Complete Mechanism: Case 2 (Crossed Config)');
 xlabel('X (mm)'); ylabel('Y (mm)');
@@ -61,6 +61,7 @@ function plot_full_mechanism(theta_in, config_mode)
     d3 = 210; a3 = 118; b3 = 210; c3 = 118; % Ground, LightBlue, Red, Grey
     
     % Input Mapping: Light Blue จาก Loop 2 (แต่ยาว 118 ใน Loop นี้)
+    % *** สำคัญ: ใช้มุม th_LightBlue เดียวกัน เพราะคือก้านเดียวกัน ***
     theta_LB_In = th_LightBlue;
     
     % Solver (LightBlue Input)
@@ -91,7 +92,8 @@ function plot_full_mechanism(theta_in, config_mode)
     R_LB_L2 = c2 * exp(1j*th_LightBlue);
     
     % Loop 3 Vectors (LightBlue starts at O2)
-    R_LB_L3 = a3 * exp(1j*theta_LB_In);
+    % *** ใช้มุม th_LightBlue เดียวกัน ***
+    R_LB_L3 = a3 * exp(1j*theta_LB_In); 
     R_Red   = b3 * exp(1j*th_Red);
     R_Grey_L3 = c3 * exp(1j*th_Grey_L3);
     
@@ -108,7 +110,7 @@ function plot_full_mechanism(theta_in, config_mode)
     % 2. Loop 1 (Green-Yellow-Grey)
     quiver(0,0, real(R_Green), imag(R_Green), 0, 'g', 'LineWidth', 3, 'MaxHeadSize',0.4); % Green
     quiver(real(R_Green), imag(R_Green), real(R_Yellow), imag(R_Yellow), 0, 'y', 'LineWidth', 3, 'MaxHeadSize',0.4); % Yellow
-    quiver(d1, 0, real(R_Grey_L1), imag(R_Grey_L1), 0, 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5, 'LineStyle', ':'); % Grey (L1 Ref)
+    % quiver(d1, 0, real(R_Grey_L1), imag(R_Grey_L1), 0, 'Color', [0.5 0.5 0.5], 'LineWidth', 1.5, 'LineStyle', ':'); % Grey (L1 Ref - ซ่อนไว้เพื่อให้รูปดูสะอาดตา)
     
     % 3. Loop 2 (Brown-Blue-LightBlue)
     % Brown (Connects to Grey L1 at O4)
@@ -116,12 +118,15 @@ function plot_full_mechanism(theta_in, config_mode)
     % Blue (Connects Brown to LightBlue)
     J_Brown = d1 + R_Brown;
     quiver(real(J_Brown), imag(J_Brown), real(R_Blue), imag(R_Blue), 0, 'b', 'LineWidth', 3, 'MaxHeadSize',0.4); % Blue
-    % Light Blue (Output of L2)
+    % Light Blue (Output of L2 - ส่วนที่ยาวกว่า)
+    % *** พล็อตส่วนนี้ก่อน ***
     quiver(0, 0, real(R_LB_L2), imag(R_LB_L2), 0, 'c', 'LineWidth', 3, 'MaxHeadSize',0.4); % Light Blue (Long)
     
     % 4. Loop 3 (LightBlue-Red-Grey)
-    % Light Blue (Short) - overlaps with Long LB
-    quiver(0, 0, real(R_LB_L3), imag(R_LB_L3), 0, 'c', 'LineWidth', 2); 
+    % Light Blue (Input of L3 - ส่วนที่สั้นกว่า) 
+    % *** พล็อตทับลงไป มันจะซ้อนกันพอดีเพราะมุมเดียวกัน ***
+    quiver(0, 0, real(R_LB_L3), imag(R_LB_L3), 0, 'c', 'LineWidth', 3, 'MaxHeadSize',0.4); % Light Blue (Short)
+    
     % Red (Connects LB to Grey)
     J_LB_Short = R_LB_L3;
     quiver(real(J_LB_Short), imag(J_LB_Short), real(R_Red), imag(R_Red), 0, 'r', 'LineWidth', 3, 'MaxHeadSize',0.4); % Red
@@ -134,7 +139,7 @@ function plot_full_mechanism(theta_in, config_mode)
     plot(real(J_LB_Short), imag(J_LB_Short), 'ko', 'MarkerFaceColor','w', 'MarkerSize',6);
     
     % Adjust View
-    ylim([-250 250]); xlim([-100 350]);
+    ylim([-200 350]); xlim([-100 350]); % ปรับแกนให้เห็นด้านบนมากขึ้นตามรูปวาด
 end
 
 %% --- HELPER: Solve Angle ---
