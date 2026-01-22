@@ -1,113 +1,129 @@
 clear all; close all; clc;
 
-%% 1. SYSTEM PARAMETERS (Loop 1: Yellow -> Brown -> Grey)
-L1 = 210; % d (Ground O2-O4)
-L2 = 118; % a (Yellow Link - Input)
-L3 = 180; % b (Brown Link - Coupler)
-L4 = 236; % c (Grey Link - Output) Note: Length to pivot O4
+%% 1. SYSTEM PARAMETERS (Loop 1: Green -> Yellow -> Grey)
+L1 = 210; % d (Ground)
+L2 = 180; % a (Green Link - Crank)
+L3 = 180; % b (Yellow Link - Coupler/Input Known)
+L4 = 118; % c (Grey Link - Output)
 
+% Parameter mapping
 a = L2;
 b = L3;
 c = L4;
 d = L1;
 
-% Input Angle (Yellow Link)
-theta2_deg = 19.94; 
-q2 = deg2rad(theta2_deg); 
+% โจทย์กำหนดมุม Link 3 (Yellow) มาให้
+theta3_deg = 19.94;
+q3 = deg2rad(theta3_deg); 
 
-%% 2. CALCULATION (Professor's Pattern with K1-K5)
-% คำนวณค่า K constants
-K1 = d/a;
-K2 = d/c;
-K3 = (a^2 - b^2 + c^2 + d^2) / (2*a*c);
-K4 = d/b;
-K5 = (c^2 - d^2 - a^2 - b^2) / (2*a*b);
+%% 2. SOLVER (Given q3, Find q2 and q4)
+% เราจะใช้สูตรที่ประยุกต์มาจาก Vector Loop เพื่อหา q2 ก่อน
+% สมการ: P*cos(q2) + Q*sin(q2) + R = 0
 
-% คำนวณสัมประสิทธิ์ A-F
-A = cos(q2) - K1 - K2*cos(q2) + K3;
-B = -2*sin(q2);
-C = K1 - (K2+1)*cos(q2) + K3;
+Kx = b*cos(q3) - d;
+Ky = b*sin(q3);
 
-D = cos(q2) - K1 + K4*cos(q2) + K5;
-E = -2*sin(q2);
-F = K1 + (K4-1)*cos(q2) + K5;
+P = 2*a*Kx;
+Q = 2*a*Ky;
+R = a^2 + Kx^2 + Ky^2 - c^2;
 
-% --- Solve for q4 (Output - Grey) ---
-q41 = 2*atan((-B + sqrt(B^2 - 4*A*C)) / (2*A));
-q42 = 2*atan((-B - sqrt(B^2 - 4*A*C)) / (2*A));
+% แก้สมการ Quadratic หา t = tan(q2/2)
+% (R - P)t^2 + 2Qt + (R + P) = 0
+A_quad = R - P;
+B_quad = 2*Q;
+C_quad = R + P;
 
-% --- Solve for q3 (Coupler - Brown) ---
-q31 = 2*atan((-E + sqrt(E^2 - 4*D*F)) / (2*D));
-q32 = 2*atan((-E - sqrt(E^2 - 4*D*F)) / (2*D));
+det = B_quad^2 - 4*A_quad*C_quad;
+if det < 0
+    error('No solution');
+end
 
-% แปลงเป็น Degree
-q41d = mod(rad2deg(q41), 360);
-q42d = mod(rad2deg(q42), 360);
-q31d = mod(rad2deg(q31), 360);
-q32d = mod(rad2deg(q32), 360);
+% หา q2 (Green) - มี 2 คำตอบ
+t1 = (-B_quad + sqrt(det)) / (2*A_quad);
+t2 = (-B_quad - sqrt(det)) / (2*A_quad);
 
-fprintf('=== Loop 1 Results ===\n');
-fprintf('Input Yellow = %.2f deg\n', theta2_deg);
-fprintf('Set 1: Brown(q3)=%.2f, Grey(q4)=%.2f\n', q31d, q41d);
-fprintf('Set 2: Brown(q3)=%.2f, Grey(q4)=%.2f\n', q32d, q42d);
+q2_1 = 2*atan(t1);
+q2_2 = 2*atan(t2);
 
-%% 3. VECTOR DEFINITION (Exp style)
-RA = a*exp(1j*q2); % Yellow Vector
-
-% --- Set 1 (Closed/Open?) ---
-RBA1 = b*exp(1j*q31);   % Brown
-RBO41 = c*exp(1j*q41);  % Grey
-RB1 = RA + RBA1; 
-
-% --- Set 2 (Closed/Open?) ---
-RBA2 = b*exp(1j*q32);   % Brown
-RBO42 = c*exp(1j*q42);  % Grey
-RB2 = RA + RBA2;
-
-RO4O2 = d*exp(1j*0); % Ground
-
-% แยก Component
-RAx = real(RA); RAy = imag(RA);
-RO4O2x = real(RO4O2); RO4O2y = imag(RO4O2);
+% หา q4 (Grey) จาก q2 ที่ได้
+% c*cos(q4) = a*cos(q2) + Kx
+% c*sin(q4) = a*sin(q2) + Ky
 
 % Set 1
-RBA1x = real(RBA1); RBA1y = imag(RBA1);
-RBO41x = real(RBO41); RBO41y = imag(RBO41);
-RB1x = real(RB1); RB1y = imag(RB1);
+val_cos1 = (a*cos(q2_1) + Kx) / c;
+val_sin1 = (a*sin(q2_1) + Ky) / c;
+q4_1 = atan2(val_sin1, val_cos1);
 
 % Set 2
-RBA2x = real(RBA2); RBA2y = imag(RBA2);
-RBO42x = real(RBO42); RBO42y = imag(RBO42);
-RB2x = real(RB2); RB2y = imag(RB2);
+val_cos2 = (a*cos(q2_2) + Kx) / c;
+val_sin2 = (a*sin(q2_2) + Ky) / c;
+q4_2 = atan2(val_sin2, val_cos2);
 
-%% 4. PLOTTING (Side-by-Side)
+% แปลงเป็น Degree
+q2_1d = rad2deg(q2_1); q4_1d = rad2deg(q4_1);
+q2_2d = rad2deg(q2_2); q4_2d = rad2deg(q4_2);
+
+fprintf('=== Results ===\n');
+fprintf('Known Yellow(q3) = %.2f\n', theta3_deg);
+fprintf('Set 1: Green(q2)=%.2f, Grey(q4)=%.2f\n', q2_1d, q4_1d);
+fprintf('Set 2: Green(q2)=%.2f, Grey(q4)=%.2f\n', q2_2d, q4_2d);
+
+%% 3. VECTOR DEFINITION (Exp style like Professor)
+% สร้าง Vector จากผลลัพธ์ที่ได้
+% เราจะ Plot ทั้ง 2 sets เพื่อเทียบดูว่าอันไหน Grey ตั้งฉาก
+
+% --- Set 1 ---
+RA_1 = a*exp(1j*q2_1);      % Green
+RBA_1 = b*exp(1j*q3);       % Yellow (Known q3)
+RB_1 = RA_1 + RBA_1;        % Resultant B (Loop Left side)
+
+RO4O2 = d*exp(1j*0);        % Ground
+RBO4_1 = c*exp(1j*q4_1);    % Grey
+RB_Right_1 = RO4O2 + RBO4_1; % Resultant B (Loop Right side)
+
+% --- Set 2 ---
+RA_2 = a*exp(1j*q2_2);      % Green
+RBA_2 = b*exp(1j*q3);       % Yellow (Known q3)
+RB_2 = RA_2 + RBA_2;
+
+RBO4_2 = c*exp(1j*q4_2);    % Grey
+
+% แยก Component
+RO4O2x = real(RO4O2); RO4O2y = imag(RO4O2);
+
+% Set 1 Components
+RA1x = real(RA_1); RA1y = imag(RA_1);
+RBA1x = real(RBA_1); RBA1y = imag(RBA_1);
+RB1x = real(RB_1); RB1y = imag(RB_1);
+RBO41x = real(RBO4_1); RBO41y = imag(RBO4_1);
+
+% Set 2 Components
+RA2x = real(RA_2); RA2y = imag(RA_2);
+RBA2x = real(RBA_2); RBA2y = imag(RBA_2);
+RB2x = real(RB_2); RB2y = imag(RB_2);
+RBO42x = real(RBO4_2); RBO42y = imag(RBO4_2);
+
+%% 4. PLOTTING (Professor's Quiver Style)
 figure('Color','w','Position',[100 100 1000 500]);
 
-% --- Plot Solution 1 ---
+% --- Plot Set 1 ---
 subplot(1,2,1); hold on; axis equal; grid on;
-title(['Solution 1: Grey Angle = ' num2str(q41d,'%.1f') ' deg']);
+title(['Set 1: Grey Angle = ' num2str(q4_1d,'%.1f')]);
 xlabel('X'); ylabel('Y');
-% Draw Vectors
-quiver(0, 0, RAx, RAy, 0, 'y', 'LineWidth', 3, 'MaxHeadSize', 0.5); % Yellow
-quiver(RAx, RAy, RBA1x, RBA1y, 0, 'Color', [0.6 0.3 0], 'LineWidth', 3, 'MaxHeadSize', 0.5); % Brown
+
+% Loop Left Side (Green + Yellow)
+quiver(0, 0, RA1x, RA1y, 0, 'g', 'LineWidth', 3, 'MaxHeadSize', 0.5); % Green
+quiver(RA1x, RA1y, RBA1x, RBA1y, 0, 'y', 'LineWidth', 3, 'MaxHeadSize', 0.5); % Yellow
+
+% Loop Right Side (Ground + Grey)
 quiver(0, 0, RO4O2x, RO4O2y, 0, 'k', 'LineWidth', 2, 'MaxHeadSize', 0.5); % Ground
 quiver(RO4O2x, RO4O2y, RBO41x, RBO41y, 0, 'Color', [0.5 0.5 0.5], 'LineWidth', 3, 'MaxHeadSize', 0.5); % Grey
-% Joints
-plot(0,0,'ko'); plot(RO4O2x,RO4O2y,'ko');
-plot(RAx,RAy,'ko','MarkerFaceColor','w');
-plot(RB1x,RB1y,'ko','MarkerFaceColor','w');
+
+% Resultant Check (Green line to B)
+plot([0 RB1x], [0 RB1y], 'g:'); 
+plot(RB1x, RB1y, 'ko', 'MarkerFaceColor', 'w');
 
 
-% --- Plot Solution 2 ---
+% --- Plot Set 2 ---
 subplot(1,2,2); hold on; axis equal; grid on;
-title(['Solution 2: Grey Angle = ' num2str(q42d,'%.1f') ' deg']);
-xlabel('X'); ylabel('Y');
-% Draw Vectors
-quiver(0, 0, RAx, RAy, 0, 'y', 'LineWidth', 3, 'MaxHeadSize', 0.5); % Yellow
-quiver(RAx, RAy, RBA2x, RBA2y, 0, 'Color', [0.6 0.3 0], 'LineWidth', 3, 'MaxHeadSize', 0.5); % Brown
-quiver(0, 0, RO4O2x, RO4O2y, 0, 'k', 'LineWidth', 2, 'MaxHeadSize', 0.5); % Ground
-quiver(RO4O2x, RO4O2y, RBO42x, RBO42y, 0, 'Color', [0.5 0.5 0.5], 'LineWidth', 3, 'MaxHeadSize', 0.5); % Grey
-% Joints
-plot(0,0,'ko'); plot(RO4O2x,RO4O2y,'ko');
-plot(RAx,RAy,'ko','MarkerFaceColor','w');
-plot(RB2x,RB2y,'ko','MarkerFaceColor','w');
+title(['Set 2: Grey Angle = ' num2str(q4_
