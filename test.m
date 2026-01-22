@@ -126,4 +126,16 @@ plot(RB1x, RB1y, 'ko', 'MarkerFaceColor', 'w');
 
 % --- Plot Set 2 ---
 subplot(1,2,2); hold on; axis equal; grid on;
-title(['Set 2: Grey Angle = ' num2str(q4_
+title(['Set 2: Grey Angle = ' num2str(q4_2d,'%.1f')]);
+xlabel('X'); ylabel('Y');
+
+% Loop Left Side (Green + Yellow)
+quiver(0, 0, RA2x, RA2y, 0, 'g', 'LineWidth', 3, 'MaxHeadSize', 0.5); % Green
+quiver(RA2x, RA2y, RBA2x, RBA2y, 0, 'y', 'LineWidth', 3, 'MaxHeadSize', 0.5); % Yellow
+
+% Loop Right Side (Ground + Grey)
+quiver(0, 0, RO4O2x, RO4O2y, 0, 'k', 'LineWidth', 2, 'MaxHeadSize', 0.5); % Ground
+quiver(RO4O2x, RO4O2y, RBO42x, RBO42y, 0, 'Color', [0.5 0.5 0.5], 'LineWidth', 3, 'MaxHeadSize', 0.5); % Grey
+
+% Resultant Check
+plot(RB2x, RB2y, 'ko', 'MarkerFaceColor', 'w');
